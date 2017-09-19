@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/prai-git/gcloud/cloudapp"
 	"net/http"
-	"github.com/prai-git/gcloud/helloworld"
-	
 )
 
 func main() {
-	http.HandleFunc("/hello", helloworld.SaveDataIntoDataStore)
+	http.HandleFunc("/hello", cloudapp.SaveDataIntoDataStore)
 	fmt.Print("Listening on port 5000")
 	fmt.Print(http.ListenAndServe(":5000", nil))
 }
