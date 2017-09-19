@@ -8,24 +8,23 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"math/rand"
+	"net/http"
 	"strconv"
-	
+
 	"cloud.google.com/go/datastore"
 
 	"golang.org/x/net/context"
-	
 )
 
+const PROJECT_ID string = "helloworld-180317"
+const KIND string = "helloworld"
 
 func main() {
 	http.HandleFunc("/", handle)
 	http.HandleFunc("/_ah/health", healthCheckHandler)
 	log.Print("Listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
-	
-	//mainFun()
 }
 
 func handle(w http.ResponseWriter, r *http.Request) {
@@ -34,9 +33,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprint(w, "Hello world!")
-	mainFun2(w, r)
-	//handleVisit(w, r)
-	fmt.Fprint(w, "Hello world! success")
+	SaveDataIntoDataStore(w, r)
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,15 +42,15 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 type Task struct {
 	Description string
-	Name string
-	Age int
+	Name        string
+	Age         int
 }
 
-func mainFun2(w http.ResponseWriter, r *http.Request) {
+func SaveDataIntoDataStore(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
 	// Set your Google Cloud Platform project ID.
-	projectID := "helloworld-180317"
+	projectID := PROJECT_ID
 
 	// Creates a client.
 	client, err := datastore.NewClient(ctx, projectID)
@@ -62,17 +59,17 @@ func mainFun2(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Sets the kind for the new entity.
-	kind := "helloworld"
+	kind := KIND
 	// Sets the name/ID for the new entity.
-	 name := strconv.Itoa(123 + rand.Intn(100000))
+	name := strconv.Itoa(123 + rand.Intn(100000))
 	// Creates a Key instance.
 	taskKey := datastore.NameKey(kind, name, nil)
 
 	// Creates a Task instance.
 	task := Task{
 		Description: "datastore app",
-		Name : "pankaj",
-		Age: 25,
+		Name:        "pankaj",
+		Age:         25,
 	}
 
 	// Saves the new entity.
@@ -81,14 +78,12 @@ func mainFun2(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var entities []Task
-	
+
 	q := datastore.NewQuery("helloworld")
 	_, err = client.GetAll(ctx, q, &entities)
-	
+
 	for _, v := range entities {
 		fmt.Fprintf(w, "[%s] %s, %d\n", v.Description, v.Name, v.Age)
 	}
-	
-	// fmt.Fprint(w, "Hello, world!")
-	
+
 }
