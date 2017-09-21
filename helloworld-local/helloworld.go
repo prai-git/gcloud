@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -23,94 +22,51 @@ var (
 const PROJECT_ID string = "helloworld-180317"
 const KIND string = "helloworld"
 
-type Task struct {
-	Description string
-	Name        string
-	Age         int
+type QueryData struct {
+	Key   string
+	Value []string
 }
 
-var tasks []Task
+var tasks []interface{}
 
 func main() {
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", handler)
+	mux.HandleFunc("/save", saveHandler)
+	mux.HandleFunc("/retrive", retriveHandler)
 
 	log.Printf("listening on port %s", *flagPort)
 	log.Fatal(http.ListenAndServe(":"+*flagPort, mux))
 }
 
-var results []string
+func saveHandler(w http.ResponseWriter, r *http.Request) {
 
-// GetHandler handles the index route
-func GetHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
 
-	jsonBody, err := json.Marshal(tasks)
-	if err != nil {
-		http.Error(w, "Error converting results to json",
-			http.StatusInternalServerError)
-	}
-	w.Write(jsonBody)
-}
+		w.Header().Set("Content-Type", "application/json")
+		queryValues := r.URL.Query()
+		fmt.Printf("%T", queryValues)
 
-// PostHandler converts post request body to string
-func handler(w http.ResponseWriter, r *http.Request) {
+		for key, value := range queryValues {
+			q := QueryData{key, value}
+			fmt.Println("Key:", key, "Value:", value)
+			tasks = append(tasks, q)
+		}
 
-	if r.Method == "POST" {
-
-		postHandler(w, r)
-	} else if r.Method == "GET" {
-		getsHandler(w, r)
+		j, _ := json.Marshal("Saved Data Successfull") // get()
+		w.Write(j)
 	} else {
 		http.Error(w, "Invalid request method"+r.RequestURI, http.StatusMethodNotAllowed)
 	}
 }
 
-func postHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var t Task
-	b, _ := ioutil.ReadAll(r.Body)
-	json.Unmarshal(b, &t)
-
-	tasks = append(tasks, t)
-	//set(task);
-
-	j, _ := json.Marshal(t)
-	w.Write(j)
-}
-
-func getsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	queryValues := r.URL.Query()
-
-	t := Task{}
-	if len(queryValues.Get("Name")) > 0 {
-		t.Name = queryValues.Get("Name")
-	}
-
-	if len(queryValues.Get("Age")) > 0 {
-		age := queryValues.Get("Age")
-		t.Age, _ = strconv.Atoi(age)
-	}
-
-	if len(queryValues.Get("Description")) > 0 {
-		t.Description = queryValues.Get("Description")
-	}
-	if len(t.Name) > 0 {
-		tasks = append(tasks, t)
-		// set(t);
-	}
+func retriveHandler(w http.ResponseWriter, r *http.Request) {
 
 	j, _ := json.Marshal(tasks) // get()
 	w.Write(j)
 }
 
-func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "ok")
-}
-
-func set(task Task) {
+func set(task interface{}) {
 	ctx := context.Background()
 
 	// Set your Google Cloud Platform project ID.
@@ -134,17 +90,9 @@ func set(task Task) {
 		log.Fatalf("Failed to save task: %v", err)
 	}
 
-	var entities []Task
-
-	q := datastore.NewQuery("helloworld")
-	_, err = client.GetAll(ctx, q, &entities)
-
-	for _, v := range entities {
-		fmt.Printf("[%s] %s, %d\n", v.Description, v.Name, v.Age)
-	}
 }
 
-func get() []Task {
+func get() []interface{} {
 	ctx := context.Background()
 
 	// Set your Google Cloud Platform project ID.
@@ -156,14 +104,10 @@ func get() []Task {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	var entities []Task
+	var entities []interface{}
 
 	q := datastore.NewQuery("helloworld")
 	_, err = client.GetAll(ctx, q, &entities)
-
-	for _, v := range entities {
-		fmt.Printf("[%s] %s, %d\n", v.Description, v.Name, v.Age)
-	}
 
 	return entities
 
